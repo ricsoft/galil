@@ -42,7 +42,7 @@ PA ,,ZRETRACT
 BGZ
 
 *** move to second initial origin
-PA #### + offset,#### + offset
+PA #### + offset (5000),#### + offset (5000)
 AMXY
 
 PA ,,ZCUT
@@ -50,7 +50,7 @@ BGZ
 
 *** capital c from top right
 VMXY
-CR 1250,90,180
+CR 2500,90,180
 VE
 VS SPEED
 VA ACCEL
