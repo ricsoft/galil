@@ -1,0 +1,73 @@
+#R
+SPEED=830
+ACCEL=50000
+DECEL=50000
+ZUP=
+ZCLEAR=
+ZRETRACT=
+ZCUT=
+
+AC ACCEL
+DC DECEL
+SP SPEED
+
+*** home
+HMXYZ
+BGXYZ
+AMXYZ
+
+*** move to work object origin
+PA ####,####
+BGXY
+AMXY
+
+*** turn on drill
+PA ,,ZCUT
+BGZ
+
+*** capital r
+VMXY
+VP 0,2500
+CR 1250,270,180
+VP 0,2500
+VP 2500,0
+VE
+VS SPEED
+VA ACCEL
+VD DECEL
+BGS
+AMS
+
+PA ,,ZRETRACT
+BGZ
+
+*** move to second initial origin
+PA #### + offset,#### + offset
+AMXY
+
+PA ,,ZCUT
+BGZ
+
+*** capital c from top right
+VMXY
+CR 1250,90,180
+VE
+VS SPEED
+VA ACCEL
+VD DECEL
+BGS
+AMS
+
+PA ,,ZRETRACT
+BGZ
+
+***turn off drill
+
+PA ,,ZUP
+BGZ
+
+PA 0,0
+BGXY
+EN
+
+
