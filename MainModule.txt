@@ -1,0 +1,156 @@
+MODULE MainModule
+    CONST robtarget home:=[[10.20,-356.81,421.71],[0.0248418,0.712498,-0.701139,0.0115746],[-1,-1,-2,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget abovePICK:=[[246.73,-174.44,233.76],[0.0248176,0.71244,-0.701199,0.0115209],[-1,-1,-2,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget PICKup:=[[246.72,-174.43,195.12],[0.024836,0.712443,-0.701196,0.0114821],[-1,-1,-2,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget abovePLACE:=[[200.02,388.07,256.53],[0.024832,0.712525,-0.701112,0.0115195],[0,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    CONST robtarget PLACEpart:=[[200.02,388.07,239.65],[0.0248499,0.712546,-0.701091,0.0115032],[0,-1,-1,0],[9E+09,9E+09,9E+09,9E+09,9E+09,9E+09]];
+    VAR num positionMaster;
+    VAR num positionSlave;
+    VAR string recordedPositions;
+    VAR num found;
+    VAR btnres temp;
+    VAR num offsetX;
+    VAR num offsetY;
+
+    PROC main()
+	! if cart is full then exit
+	IF StrLen(recordedPositions) = 6 THEN
+	    temp:= UIMessageBox (\Header:="Cart is full. This program will end." \BtnArray:=["OK"] \Icon:=iconInfo);
+	ENDIF
+
+        ! ask for master position
+        positionMaster:=UINumEntry(\Header:="Master position"\Message:="1-6: "\Icon:=iconInfo\InitValue:=1\MinValue:=1\MaxValue:=6);
+	found := StrFind(recordedPositions, 1, positionMaster);
+
+	! check if position is used
+        WHILE found < StrLen(recordedPositions)+1 DO
+            positionMaster:=UINumEntry(\Header:="Position taken, try another"\Message:="1-6: "\Icon:=iconInfo\InitValue:=1\MinValue:=1\MaxValue:=6);
+	    found := StrFind(recordedPositions, 1, positionMaster);
+        ENDWHILE
+
+        ! ask for slave position
+        positionSlave:=UINumEntry(\Header:="Slave position"\Message:="1-6: "\Icon:=iconInfo\InitValue:=1\MinValue:=1\MaxValue:=6);
+	found := StrFind(recordedPositions, 1, positionSlave);
+
+	! check if position is used
+        WHILE found < StrLen(recordedPositions)+1 DO
+            positionSlave:=UINumEntry(\Header:="Position taken, try another"\Message:="1-6: "\Icon:=iconInfo\InitValue:=1\MinValue:=1\MaxValue:=6);
+        ENDWHILE
+
+  	! send the position to slave
+        IF positionSlave=1 THEN
+            Set DO10_6;
+            Reset DO10_7;
+            Reset DO10_8;
+	    offsetX := 0;
+   	    offsetY := 0;
+        ELSEIF positionSlave=2 THEN
+            Reset DO10_6;
+            Set DO10_7;
+            Reset DO10_8;
+	    offsetX := 0;
+   	    offsetY := 0;
+        ELSEIF positionSlave=3 THEN
+            Set DO10_6;
+            Set DO10_7;
+            Reset DO10_8;
+	    offsetX := 0;
+   	    offsetY := 0;
+        ELSEIF positionSlave=4 THEN
+            Reset DO10_6;
+            Reset DO10_7;
+            Set DO10_8;
+	    offsetX := 0;
+   	    offsetY := 0;
+        ELSEIF positionSlave=5 THEN
+            Set DO10_6;
+            Reset DO10_7;
+            Set DO10_8;
+	    offsetX := 0;
+   	    offsetY := 0;
+        ELSEIF positionSlave=6 THEN
+            Reset DO10_6;
+            Set DO10_7;
+            Set DO10_8;
+	    offsetX := 0;
+   	    offsetY := 0;
+        ENDIF
+
+	! wait for cart to reach first stop
+	WaitDI DI10_?,1;
+
+	! move arm home
+        MoveJ home,v1000,fine,tool0;
+
+	! lower first stop
+	Reset DO10_?;
+
+	! wait for cart to reach second stop
+	WaitDI DI10_?,1;
+
+	! raise first stop
+	Set DO10_?;
+
+	! raise first lift
+	Set DO10_?;
+	WaitTime 8.0;
+	
+        ! Move tray and ejector
+        Reset DO10_2;
+        WaitDI DI10_2,1;
+        Reset DO10_1;
+        WaitDI DI10_3,1;
+        Set DO10_1;
+        WaitDI DI10_1,1;
+        Set DO10_2;
+        WaitDI DI10_4,1;
+
+        open_gripper;
+
+        ! Orient tray
+        Set DO10_2;
+        WaitDI DI10_4,1,\MaxTime:=15,\MsgArray:=["Error waiting for tray"],\Icon:=iconError;
+
+        ! Move arm to tray
+        MoveJ abovePICK,v1000,fine,tool0;
+        MoveL PICKup,v200,fine,tool0;
+
+        close_gripper;
+
+        ! Move arm up, then to cart
+        MoveL abovePICK,v200,fine,tool0;
+        MoveJ Offs(abovePLACE,0*offsetX,0*offsetY,0),v1000,fine,tool0;
+	MoveL Offs(PLACEpart,0*offsetX,0*offsetY,0),v200,fine,tool0;
+
+	open_gripper;
+
+	! move arm home
+        MoveJ Offs(abovePLACE,0*offsetX,0*offsetY,0),v200,fine,tool0;
+	MoveJ home,v1000,fine,tool0;
+
+	! lower first lift
+	Reset DO10_?;
+	WaitTime 8.0;
+
+	! wait for slave to be ready
+	WaitDI DI10_?,1;
+
+	! lower second stop, then raise it again
+	Reset DO10_?;
+	WaitTime 10.0;
+	Set DO10_?;
+    ENDPROC
+
+    PROC open_gripper()
+        Reset DO10_13;
+        Set DO10_14;
+        WaitTime 0.2;
+    ENDPROC
+
+    PROC close_gripper()
+        Set DO10_13;
+        Reset DO10_14;
+        WaitTime 0.2;
+    ENDPROC
+
+ENDMODULE
